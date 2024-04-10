@@ -1,0 +1,209 @@
+{% extends 'base/main.html' %} {% load static %} {% block content %}
+
+<style>
+  @import url("https://fonts.googleapis.com/css?family=Raleway:900&display=swap");
+
+  #welcome-message {
+    position: relative;
+    margin: auto;
+    width: 100%;
+    height: 90px;
+
+    filter: url(#threshold) blur(0.6px);
+  }
+
+  #text1,
+  #text2 {
+    margin-top: 25px;
+    color: #ff00f2;
+    /* color: #fff; */
+    position: absolute;
+    width: 100%;
+    display: inline-block;
+    font-family: "Raleway", sans-serif;
+    font-size: 50px;
+    text-align: center;
+    user-select: none;
+  }
+</style>
+
+<main>
+  <section id="form-container">
+    <img id="logo" src="{% static 'images/among.webp' %}" />
+
+    <div id="welcome-message">
+      <div id="container">
+        <span id="text1"></span>
+        <span id="text2"></span>
+      </div>
+
+      <svg id="filters">
+        <defs>
+          <filter id="threshold">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0
+                                              0 1 0 0 0
+                                              0 0 1 0 0
+                                              0 0 0 255 -140"
+            />
+          </filter>
+        </defs>
+      </svg>
+    </div>
+    <p
+      style="
+        text-align: center;
+        font-size: 16px;
+        margin: 5px 3px;
+        color: rgb(97, 98, 105);
+      "
+    >
+      Low budget GoogleMeeting!
+    </p>
+
+    <form id="form">
+      <div class="field-wrapper">
+        <div class="form-field">
+          <label>Room:</label>
+          <input
+            name="room"
+            placeholder="Enter a room name..."
+            style="text-transform: uppercase"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>Name:</label>
+          <input
+            name="name"
+            placeholder="Enter your name..."
+            style="text-transform: uppercase"
+          />
+        </div>
+
+        <!-- <div class="form-field">
+          <input type="submit" value="Join Stream" />
+        </div> -->
+
+        <div id="app">
+          <button>
+            <span type="submit" class="text" style="color: black"
+              >Join Stream</span
+            >
+            <span class="shimmer"></span>
+          </button>
+        </div>
+
+      </div>
+    </form>
+  </section>
+</main>
+
+<script>
+  let form = document.getElementById("form");
+
+  let handleSubmit = async (e) => {
+    e.preventDefault();
+    let room = e.target.room.value.toUpperCase();
+    let name = e.target.name.value;
+
+    let response = await fetch(`/get_token/?channel=${room}`);
+    let data = await response.json();
+
+    let UID = data.uid;
+    let token = data.token;
+
+    sessionStorage.setItem("UID", UID);
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("room", room);
+    sessionStorage.setItem("name", name);
+
+    window.open("/room/", "_self");
+  };
+
+  form.addEventListener("submit", handleSubmit);
+</script>
+
+<script>
+  const elts = {
+    text1: document.getElementById("text1"),
+    text2: document.getElementById("text2"),
+  };
+
+  const texts = ["Why", "is", "this", "so", "satisfying", "to", "watch?"];
+
+  //   const texts = ["putangina", "bobo", "pizda", "fuck", "anjing", "Гичий", "Суkа?"];
+
+  const morphTime = 1;
+  const cooldownTime = 0.25;
+
+  let textIndex = texts.length - 1;
+  let time = new Date();
+  let morph = 0;
+  let cooldown = cooldownTime;
+
+  elts.text1.textContent = texts[textIndex % texts.length];
+  elts.text2.textContent = texts[(textIndex + 1) % texts.length];
+
+  function doMorph() {
+    morph -= cooldown;
+    cooldown = 0;
+
+    let fraction = morph / morphTime;
+
+    if (fraction > 1) {
+      cooldown = cooldownTime;
+      fraction = 1;
+    }
+
+    setMorph(fraction);
+  }
+
+  function setMorph(fraction) {
+    elts.text2.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
+    elts.text2.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
+
+    fraction = 1 - fraction;
+    elts.text1.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
+    elts.text1.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
+
+    elts.text1.textContent = texts[textIndex % texts.length];
+    elts.text2.textContent = texts[(textIndex + 1) % texts.length];
+  }
+
+  function doCooldown() {
+    morph = 0;
+
+    elts.text2.style.filter = "";
+    elts.text2.style.opacity = "100%";
+
+    elts.text1.style.filter = "";
+    elts.text1.style.opacity = "0%";
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    let newTime = new Date();
+    let shouldIncrementIndex = cooldown > 0;
+    let dt = (newTime - time) / 1000;
+    time = newTime;
+
+    cooldown -= dt;
+
+    if (cooldown <= 0) {
+      if (shouldIncrementIndex) {
+        textIndex++;
+      }
+
+      doMorph();
+    } else {
+      doCooldown();
+    }
+  }
+  animate();
+</script>
+
+{% endblock content %}
